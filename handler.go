@@ -53,7 +53,7 @@ func (h *CdnHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Determine mode based on host
 	host := strings.ToLower(r.Host)
-	isDirect := strings.HasPrefix(host, "direct.cdn.")
+	isDirect := strings.HasPrefix(host, "s3.")
 	isStream := strings.HasPrefix(host, "cdn.")
 
 	if !isDirect && !isStream {
@@ -98,7 +98,7 @@ func (h *CdnHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if isDirect {
-		// Redirect to presigned URL, if using direct.cdn.<domain>
+		// Redirect to presigned URL, if using s3.<domain>
 		http.Redirect(w, r, presignedReq.URL, http.StatusTemporaryRedirect)
 		return
 	}
