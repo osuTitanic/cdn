@@ -14,15 +14,15 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
-type CDNHandler struct {
+type CdnHandler struct {
 	s3Client  *s3.Client
 	presigner *s3.PresignClient
 	config    *Config
 }
 
-func NewCDNHandler(cfg *Config) (*CDNHandler, error) {
+func NewCdnHandler(cfg *Config) (*CdnHandler, error) {
 	s3Client := s3.New(s3.Options{
-		Region: cfg.S3Region,
+		Region:       cfg.S3Region,
 		BaseEndpoint: aws.String(cfg.S3Endpoint),
 		Credentials: credentials.NewStaticCredentialsProvider(
 			cfg.S3AccessKey,
@@ -31,14 +31,14 @@ func NewCDNHandler(cfg *Config) (*CDNHandler, error) {
 		),
 	})
 
-	return &CDNHandler{
+	return &CdnHandler{
 		s3Client:  s3Client,
 		presigner: s3.NewPresignClient(s3Client),
 		config:    cfg,
 	}, nil
 }
 
-func (h *CDNHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *CdnHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -100,7 +100,7 @@ func (h *CDNHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.streamObject(ctx, w, r, presignedReq.URL, objectKey)
 }
 
-func (h *CDNHandler) streamObject(
+func (h *CdnHandler) streamObject(
 	ctx context.Context,
 	w http.ResponseWriter,
 	r *http.Request,

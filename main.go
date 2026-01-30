@@ -11,7 +11,7 @@ func main() {
 		log.Fatal("S3_ACCESS_KEY, S3_SECRET_KEY, and S3_BUCKET are required")
 	}
 
-	handler, err := NewCDNHandler(cfg)
+	handler, err := NewCdnHandler(cfg)
 	if err != nil {
 		log.Fatalf("Failed to create handler: %v", err)
 	}
