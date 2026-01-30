@@ -44,6 +44,13 @@ func (h *CdnHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Janky way of doing health checks, but I don't care
+	if r.URL.Path == "/health" {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("we are gaming"))
+		return
+	}
+
 	// Determine mode based on host
 	host := strings.ToLower(r.Host)
 	isDirect := strings.HasPrefix(host, "direct.cdn.")
