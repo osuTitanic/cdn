@@ -76,6 +76,8 @@ func (h *CdnHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if h.config.AllowedPrefix != "" {
+		// Strip the prefix if already present to avoid double-prefixing
+		objectKey = strings.TrimPrefix(objectKey, h.config.AllowedPrefix)
 		// Apply allowed prefix
 		objectKey = h.config.AllowedPrefix + objectKey
 	}
