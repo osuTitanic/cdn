@@ -99,6 +99,9 @@ func (h *CdnHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Log incoming request
+	log.Printf("%s %s %s [%s] (%s)", r.Method, host, r.URL.Path, r.RemoteAddr, r.UserAgent())
+
 	if isDirect {
 		// Redirect to presigned URL, if using s3.<domain>
 		http.Redirect(w, r, presignedReq.URL, http.StatusTemporaryRedirect)
