@@ -17,9 +17,6 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /s3-cdn .
 
 FROM alpine:latest
 
-# Install curl for health checks
-RUN apk add --no-cache curl
-
 # Copy CA certificates for HTTPS
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
