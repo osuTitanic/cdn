@@ -2,7 +2,7 @@ FROM golang:1.25-alpine AS builder
 
 WORKDIR /app
 
-# Install ca-certificates for HTTPS requests
+# Install ca-certificates for https requests
 RUN apk add --no-cache ca-certificates
 
 # Copy go mod files first for better caching
@@ -16,6 +16,9 @@ COPY *.go ./
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /s3-cdn .
 
 FROM scratch
+
+# Add curl for health checks
+RUN apk add --no-cache curl
 
 # Copy CA certificates for HTTPS
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
