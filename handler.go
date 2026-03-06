@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log"
 	"net/http"
@@ -18,6 +19,7 @@ type CdnHandler struct {
 	s3Client  *s3.Client
 	presigner *s3.PresignClient
 	config    *Config
+	router    http.Handler
 }
 
 func NewCdnHandler(cfg *Config) (*CdnHandler, error) {
@@ -31,27 +33,54 @@ func NewCdnHandler(cfg *Config) (*CdnHandler, error) {
 		),
 	})
 
-	return &CdnHandler{
+	handler := &CdnHandler{
 		s3Client:  s3Client,
 		presigner: s3.NewPresignClient(s3Client),
 		config:    cfg,
-	}, nil
+	}
+	handler.router = handler.Routes()
+	return handler, nil
 }
 
-func (h *CdnHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *CdnHandler) Router() http.Handler {
+	return h.router
+}
+
+func (h *CdnHandler) Routes() http.Handler {
+	mux := http.NewServeMux()
+	mux.Handle("/health", h.StatusRoutes())
+	mux.Handle("/admin/", h.AdminRoutes())
+	mux.Handle("/", h.ObjectRoutes())
+	return h.logRequests(mux)
+}
+
+func (h *CdnHandler) ObjectRoutes() http.Handler {
+	return http.HandlerFunc(h.HandleDownloadRequest)
+}
+
+func (h *CdnHandler) StatusRoutes() http.Handler {
+	mux := http.NewServeMux()
+	mux.Handle("/health", http.HandlerFunc(h.HandleHealth))
+	return mux
+}
+
+func (h *CdnHandler) AdminRoutes() http.Handler {
+	mux := http.NewServeMux()
+	// TODO: Implement file management capabilities
+	return mux
+}
+
+func (h *CdnHandler) HandleHealth(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("we are gaming"))
+}
+
+func (h *CdnHandler) HandleDownloadRequest(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	// Janky way of doing health checks, but I don't care
-	if r.URL.Path == "/health" {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("we are gaming"))
-		return
-	}
-
-	// Determine mode based on host
 	host := strings.ToLower(r.Host)
 	isDirect := strings.HasPrefix(host, "s3.")
 	isStream := strings.HasPrefix(host, "cdn.")
@@ -61,25 +90,10 @@ func (h *CdnHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Clean and validate path
-	objectKey := strings.TrimPrefix(r.URL.Path, "/")
-	if objectKey == "" {
-		http.Error(w, "No path specified", http.StatusBadRequest)
+	objectKey, err := h.objectKeyFromRequestPath(r.URL.Path)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
-	}
-
-	// Prevent path traversal
-	objectKey = path.Clean(objectKey)
-	if strings.HasPrefix(objectKey, "..") || strings.Contains(objectKey, "/../") {
-		http.Error(w, "Invalid path", http.StatusBadRequest)
-		return
-	}
-
-	if h.config.AllowedPrefix != "" {
-		// Strip the prefix if already present to avoid double-prefixing
-		objectKey = strings.TrimPrefix(objectKey, h.config.AllowedPrefix)
-		// Apply allowed prefix
-		objectKey = h.config.AllowedPrefix + objectKey
 	}
 
 	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
@@ -91,7 +105,6 @@ func (h *CdnHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Key:    aws.String(objectKey),
 	}
 
-	// Generate presigned URL
 	presignedReq, err := h.presigner.PresignGetObject(ctx, objectInput, presignOptions)
 	if err != nil {
 		log.Printf("Failed to presign URL for %s: %v", objectKey, err)
@@ -99,17 +112,38 @@ func (h *CdnHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Log incoming request
-	log.Printf("%s %s %s [%s] (%s)", r.Method, host, r.URL.Path, r.RemoteAddr, r.UserAgent())
-
 	if isDirect {
-		// Redirect to presigned URL, if using s3.<domain>
 		http.Redirect(w, r, presignedReq.URL, http.StatusTemporaryRedirect)
 		return
 	}
 
-	// Fallback to streaming mode, if using cdn.<domain>
 	h.streamObject(ctx, w, r, presignedReq.URL, objectKey)
+}
+
+func (h *CdnHandler) objectKeyFromRequestPath(requestPath string) (string, error) {
+	objectKey := strings.TrimPrefix(requestPath, "/")
+	if objectKey == "" {
+		return "", errors.New("No path specified")
+	}
+
+	objectKey = path.Clean(objectKey)
+	if strings.HasPrefix(objectKey, "..") || strings.Contains(objectKey, "/../") {
+		return "", errors.New("Invalid path")
+	}
+
+	if h.config.AllowedPrefix != "" {
+		objectKey = strings.TrimPrefix(objectKey, h.config.AllowedPrefix)
+		objectKey = h.config.AllowedPrefix + objectKey
+	}
+
+	return objectKey, nil
+}
+
+func (h *CdnHandler) logRequests(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("%s %s %s [%s] (%s)", r.Method, r.Host, r.URL.Path, r.RemoteAddr, r.UserAgent())
+		next.ServeHTTP(w, r)
+	})
 }
 
 func (h *CdnHandler) streamObject(
@@ -126,7 +160,6 @@ func (h *CdnHandler) streamObject(
 		return
 	}
 
-	// Forward range header for partial content support
 	if rangeHeader := r.Header.Get("Range"); rangeHeader != "" {
 		req.Header.Set("Range", rangeHeader)
 	}
@@ -139,7 +172,6 @@ func (h *CdnHandler) streamObject(
 	}
 	defer resp.Body.Close()
 
-	// Handle S3 errors
 	if resp.StatusCode == http.StatusNotFound {
 		http.Error(w, "Not found", http.StatusNotFound)
 		return
@@ -149,7 +181,6 @@ func (h *CdnHandler) streamObject(
 		return
 	}
 
-	// Forward relevant headers
 	forwardHeaders := []string{
 		"Content-Type",
 		"Content-Length",
@@ -166,12 +197,11 @@ func (h *CdnHandler) streamObject(
 	}
 	w.WriteHeader(resp.StatusCode)
 
-	// Skip body for HEAD requests
 	if r.Method == http.MethodHead {
+		// HEAD requests only return headers, no body
 		return
 	}
 
-	// Stream the body
 	_, err = io.Copy(w, resp.Body)
 	if err != nil {
 		log.Printf("Error streaming %s: %v", objectKey, err)
