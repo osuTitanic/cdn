@@ -14,6 +14,12 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
+// This is the part of the project that made it exist in the first place: the s3 proxy
+// My requirements for it were:
+// - Provide a direct, streaming file download (cdn.titanic.sh)
+// - Provide a redirect to pre-signed URLs (s3.titanic.sh)
+// This way we ensure that old browsers can access the files without https support
+
 func (h *CdnHandler) CdnRoutes() http.Handler {
 	return http.HandlerFunc(h.HandleDownloadRequest)
 }
