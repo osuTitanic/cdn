@@ -17,3 +17,6 @@ go.work
 # Configuration files
 .env
 config.json
+
+# Air build files
+tmp/
