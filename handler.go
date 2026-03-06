@@ -85,7 +85,7 @@ func (h *CdnHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 	defer cancel()
 
-	presignOptions := s3.WithPresignExpires(h.config.PresignExpiry)
+	presignOptions := s3.WithPresignExpires(h.config.PresignExpiry.Duration)
 	objectInput := &s3.GetObjectInput{
 		Bucket: aws.String(h.config.S3BucketName),
 		Key:    aws.String(objectKey),

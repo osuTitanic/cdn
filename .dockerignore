@@ -1,6 +1,7 @@
 .env
 .git
 .gitignore
+config.json
 *.md
 Dockerfile
 docker-compose.yml

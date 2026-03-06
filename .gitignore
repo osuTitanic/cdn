@@ -14,5 +14,6 @@
 # Go workspace file
 go.work
 
-# Environment file
+# Configuration files
 .env
+config.json
