@@ -14,7 +14,7 @@ func main() {
 	}
 
 	if cfg.S3AccessKey == "" || cfg.S3SecretKey == "" || cfg.S3BucketName == "" {
-		log.Fatal("S3_ACCESS_KEY, S3_SECRET_KEY, and S3_BUCKET are required")
+		log.Fatal("S3 access key, secret key & bucket name are required")
 		os.Exit(1)
 	}
 
@@ -24,7 +24,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	log.Printf("S3 proxy listening on %s ...", cfg.ListenAddress)
+	log.Printf("CDN is listening on %s ...", cfg.ListenAddress)
 
 	if err := http.ListenAndServe(cfg.ListenAddress, handler); err != nil {
 		log.Fatalf("Server error: %v", err)
