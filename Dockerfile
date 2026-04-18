@@ -21,7 +21,8 @@ FROM alpine:latest
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 # Copy binary
-COPY --from=builder /s3-cdn /s3-cdn
+WORKDIR /app
+COPY --from=builder /s3-cdn /app/s3-cdn
 
 EXPOSE 8080
-ENTRYPOINT ["/s3-cdn"]
+ENTRYPOINT ["/app/s3-cdn"]

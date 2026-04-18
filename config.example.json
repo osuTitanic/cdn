@@ -6,7 +6,7 @@
     "s3_bucket_name": "your-bucket-name",
     "allowed_prefix": "public/",
     "presign_expiry": "15m",
-    "listen_address": ":6969",
+    "listen_address": ":8080",
     "admin_access_keys": [
         {
             "name": "exampleuser",
