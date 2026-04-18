@@ -1,19 +1,33 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
+type S3ObjectStore interface {
+	ListObjectsV2(ctx context.Context, params *s3.ListObjectsV2Input, options ...func(*s3.Options)) (*s3.ListObjectsV2Output, error)
+	PutObject(ctx context.Context, params *s3.PutObjectInput, options ...func(*s3.Options)) (*s3.PutObjectOutput, error)
+	DeleteObject(ctx context.Context, params *s3.DeleteObjectInput, options ...func(*s3.Options)) (*s3.DeleteObjectOutput, error)
+}
+
+type S3Presigner interface {
+	PresignGetObject(ctx context.Context, params *s3.GetObjectInput, options ...func(*s3.PresignOptions)) (*v4.PresignedHTTPRequest, error)
+}
+
 type CdnHandler struct {
-	s3Client  *s3.Client
-	presigner *s3.PresignClient
-	config    *Config
-	router    http.Handler
+	keys   map[string]AccessKey
+	config *Config
+	router http.Handler
+
+	client    S3ObjectStore
+	presigner S3Presigner
 }
 
 func NewCdnHandler(cfg *Config) (*CdnHandler, error) {
@@ -28,10 +42,15 @@ func NewCdnHandler(cfg *Config) (*CdnHandler, error) {
 	})
 
 	handler := &CdnHandler{
-		s3Client:  s3Client,
-		presigner: s3.NewPresignClient(s3Client),
 		config:    cfg,
+		keys:      make(map[string]AccessKey, len(cfg.AdminAccessKeys)),
+		client:    s3Client,
+		presigner: s3.NewPresignClient(s3Client),
 	}
+	for _, accessKey := range cfg.AdminAccessKeys {
+		handler.keys[accessKey.AccessKey] = accessKey
+	}
+
 	handler.router = handler.Routes()
 	return handler, nil
 }
@@ -43,7 +62,7 @@ func (h *CdnHandler) Router() http.Handler {
 func (h *CdnHandler) Routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle("/health", h.StatusRoutes())
-	mux.Handle("/admin/", h.AdminRoutes())
+	mux.Handle("/admin/", http.StripPrefix("/admin", h.AdminRoutes()))
 	mux.Handle("/", h.CdnRoutes())
 	return h.logRequests(mux)
 }
