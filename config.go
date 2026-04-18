@@ -4,30 +4,54 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"slices"
+	"strings"
 	"time"
 )
 
 type Config struct {
-	S3Endpoint    string   `json:"s3_endpoint"`
-	S3Region      string   `json:"s3_region"`
-	S3AccessKey   string   `json:"s3_access_key"`
-	S3SecretKey   string   `json:"s3_secret_key"`
-	S3BucketName  string   `json:"s3_bucket_name"`
-	AllowedPrefix string   `json:"allowed_prefix"`
-	PresignExpiry Duration `json:"presign_expiry"`
-	ListenAddress string   `json:"listen_address"`
+	S3Endpoint      string      `json:"s3_endpoint"`
+	S3Region        string      `json:"s3_region"`
+	S3AccessKey     string      `json:"s3_access_key"`
+	S3SecretKey     string      `json:"s3_secret_key"`
+	S3BucketName    string      `json:"s3_bucket_name"`
+	AllowedPrefix   string      `json:"allowed_prefix"`
+	PresignExpiry   Duration    `json:"presign_expiry"`
+	ListenAddress   string      `json:"listen_address"`
+	AdminAccessKeys []AccessKey `json:"admin_access_keys"`
+}
+
+type AccessKey struct {
+	Name        string   `json:"name"`
+	AccessKey   string   `json:"access_key"`
+	Prefixes    []string `json:"prefixes"`
+	Permissions []string `json:"permissions"`
+}
+
+func (key AccessKey) HasPermission(permission string) bool {
+	return slices.Contains(key.Permissions, permission)
+}
+
+func (key AccessKey) AllowsPath(candidate string) bool {
+	for _, allowedPrefix := range key.Prefixes {
+		if allowedPrefix == "" || strings.HasPrefix(candidate, allowedPrefix) {
+			return true
+		}
+	}
+	return false
 }
 
 func LoadConfig(path string) (*Config, error) {
 	cfg := &Config{
-		S3Endpoint:    "https://s3.eu-central-1.wasabisys.com",
-		S3Region:      "eu-central-1",
-		S3AccessKey:   "",
-		S3SecretKey:   "",
-		S3BucketName:  "",
-		AllowedPrefix: "",
-		PresignExpiry: Duration{15 * time.Minute},
-		ListenAddress: ":6969",
+		S3Endpoint:      "https://s3.eu-central-1.wasabisys.com",
+		S3Region:        "eu-central-1",
+		S3AccessKey:     "",
+		S3SecretKey:     "",
+		S3BucketName:    "",
+		AllowedPrefix:   "",
+		PresignExpiry:   Duration{15 * time.Minute},
+		ListenAddress:   ":6969",
+		AdminAccessKeys: nil,
 	}
 
 	data, err := os.ReadFile(path)
