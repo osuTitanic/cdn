@@ -1,6 +1,6 @@
 services:
   s3-cdn:
-    build: .
+    image: ghcr.io/osutitanic/cdn:latest
     container_name: ${CONTAINER_NAME:-s3-cdn}
     restart: unless-stopped
     ports:
