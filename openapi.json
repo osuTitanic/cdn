@@ -1,0 +1,777 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "Titanic! CDN",
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "https://cdn.titanic.sh",
+            "description": "Production streaming host."
+        },
+        {
+            "url": "https://s3.titanic.sh",
+            "description": "Production redirect host."
+        },
+        {
+            "url": "http://localhost:6969",
+            "description": "Local development server."
+        }
+    ],
+    "tags": [
+        {
+            "name": "Health",
+            "description": "Basic service liveness."
+        },
+        {
+            "name": "Admin",
+            "description": "Authenticated file operations."
+        },
+        {
+            "name": "Download",
+            "description": "Public access through the cdn or redirect host."
+        }
+    ],
+    "paths": {
+        "/health": {
+            "get": {
+                "tags": ["Health"],
+                "summary": "Health check",
+                "operationId": "getHealth",
+                "responses": {
+                    "200": {
+                        "description": "Service is healthy.",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "we are gaming"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/session": {
+            "get": {
+                "tags": ["Admin"],
+                "summary": "Get the authenticated admin session",
+                "operationId": "getAdminSession",
+                "description": "Returns the configured name, allowed prefixes, and permissions associated with the bearer token.",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Authenticated session details.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AdminSession"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AdminUnauthorized"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/AdminInternalError"
+                    }
+                }
+            }
+        },
+        "/admin/files": {
+            "get": {
+                "tags": ["Admin"],
+                "summary": "List objects under a prefix",
+                "operationId": "listAdminFiles",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/PrefixQuery"
+                    },
+                    {
+                        "$ref": "#/components/parameters/LimitQuery"
+                    },
+                    {
+                        "$ref": "#/components/parameters/CursorQuery"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Objects visible to the current access key under the requested prefix.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AdminListResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/AdminBadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AdminUnauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AdminForbidden"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/AdminInternalError"
+                    },
+                    "502": {
+                        "$ref": "#/components/responses/AdminStorageError"
+                    }
+                }
+            }
+        },
+        "/admin/files/{objectKey}": {
+            "parameters": [
+                {
+                    "$ref": "#/components/parameters/ObjectKeyPath"
+                }
+            ],
+            "put": {
+                "tags": ["Admin"],
+                "summary": "Upload or replace an object",
+                "operationId": "putAdminFile",
+                "description": "Uploads the raw request body to the object key. The service forwards `Content-Type`, `Cache-Control`, and `Content-Disposition` to object storage when present.",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/ContentTypeHeader"
+                    },
+                    {
+                        "$ref": "#/components/parameters/CacheControlHeader"
+                    },
+                    {
+                        "$ref": "#/components/parameters/ContentDispositionHeader"
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "*/*": {
+                            "schema": {
+                                "type": "string",
+                                "format": "binary"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Object stored successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AdminUploadResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/AdminBadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AdminUnauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AdminForbidden"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/AdminInternalError"
+                    },
+                    "502": {
+                        "$ref": "#/components/responses/AdminStorageError"
+                    }
+                }
+            },
+            "delete": {
+                "tags": ["Admin"],
+                "summary": "Delete an object",
+                "operationId": "deleteAdminFile",
+                "description": "Deletes the object at the requested key. Missing objects are treated as a successful no-op and still return `204`.",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Object deleted or already absent."
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/AdminBadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AdminUnauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AdminForbidden"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/AdminInternalError"
+                    },
+                    "502": {
+                        "$ref": "#/components/responses/AdminStorageError"
+                    }
+                }
+            }
+        },
+        "/{objectKey}": {
+            "parameters": [
+                {
+                    "$ref": "#/components/parameters/ObjectKeyPath"
+                }
+            ],
+            "get": {
+                "tags": ["Download"],
+                "summary": "Download an object",
+                "operationId": "getObject",
+                "description": "Behavior depends on the request host. On `cdn.*`, the service fetches the object from storage and streams the response body back to the client. On `s3.*`, the service returns a `307 Temporary Redirect` to a presigned storage URL instead. Requests sent to other hosts fail with `400 Invalid host`.",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/RangeHeader"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Object streamed successfully.",
+                        "headers": {
+                            "Content-Type": {
+                                "$ref": "#/components/headers/ContentType"
+                            },
+                            "Content-Length": {
+                                "$ref": "#/components/headers/ContentLength"
+                            },
+                            "Accept-Ranges": {
+                                "$ref": "#/components/headers/AcceptRanges"
+                            },
+                            "ETag": {
+                                "$ref": "#/components/headers/ETag"
+                            },
+                            "Last-Modified": {
+                                "$ref": "#/components/headers/LastModified"
+                            },
+                            "Cache-Control": {
+                                "$ref": "#/components/headers/CacheControl"
+                            }
+                        },
+                        "content": {
+                            "application/octet-stream": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        }
+                    },
+                    "206": {
+                        "description": "Requested byte range streamed successfully.",
+                        "headers": {
+                            "Content-Type": {
+                                "$ref": "#/components/headers/ContentType"
+                            },
+                            "Content-Length": {
+                                "$ref": "#/components/headers/ContentLength"
+                            },
+                            "Content-Range": {
+                                "$ref": "#/components/headers/ContentRange"
+                            },
+                            "Accept-Ranges": {
+                                "$ref": "#/components/headers/AcceptRanges"
+                            },
+                            "ETag": {
+                                "$ref": "#/components/headers/ETag"
+                            },
+                            "Last-Modified": {
+                                "$ref": "#/components/headers/LastModified"
+                            },
+                            "Cache-Control": {
+                                "$ref": "#/components/headers/CacheControl"
+                            }
+                        },
+                        "content": {
+                            "application/octet-stream": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        }
+                    },
+                    "307": {
+                        "$ref": "#/components/responses/DownloadRedirect"
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/DownloadBadRequest"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/DownloadNotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/DownloadPresignError"
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/DownloadUpstreamError"
+                    }
+                }
+            },
+            "head": {
+                "tags": ["Download"],
+                "summary": "Fetch object metadata headers",
+                "operationId": "headObject",
+                "description": "On `cdn.*`, performs the same storage fetch as `GET` but returns headers only. On `s3.*`, returns a `307 Temporary Redirect` to a presigned storage URL. Requests sent to other hosts fail with `400 Invalid host`.",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/RangeHeader"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Object metadata returned successfully.",
+                        "headers": {
+                            "Content-Type": {
+                                "$ref": "#/components/headers/ContentType"
+                            },
+                            "Content-Length": {
+                                "$ref": "#/components/headers/ContentLength"
+                            },
+                            "Accept-Ranges": {
+                                "$ref": "#/components/headers/AcceptRanges"
+                            },
+                            "ETag": {
+                                "$ref": "#/components/headers/ETag"
+                            },
+                            "Last-Modified": {
+                                "$ref": "#/components/headers/LastModified"
+                            },
+                            "Cache-Control": {
+                                "$ref": "#/components/headers/CacheControl"
+                            }
+                        }
+                    },
+                    "206": {
+                        "description": "Requested byte-range metadata returned successfully.",
+                        "headers": {
+                            "Content-Type": {
+                                "$ref": "#/components/headers/ContentType"
+                            },
+                            "Content-Length": {
+                                "$ref": "#/components/headers/ContentLength"
+                            },
+                            "Content-Range": {
+                                "$ref": "#/components/headers/ContentRange"
+                            },
+                            "Accept-Ranges": {
+                                "$ref": "#/components/headers/AcceptRanges"
+                            },
+                            "ETag": {
+                                "$ref": "#/components/headers/ETag"
+                            },
+                            "Last-Modified": {
+                                "$ref": "#/components/headers/LastModified"
+                            },
+                            "Cache-Control": {
+                                "$ref": "#/components/headers/CacheControl"
+                            }
+                        }
+                    },
+                    "307": {
+                        "$ref": "#/components/responses/DownloadRedirect"
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/DownloadBadRequest"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/DownloadNotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/DownloadPresignError"
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/DownloadUpstreamError"
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "access key"
+            }
+        },
+        "parameters": {
+            "ObjectKeyPath": {
+                "name": "objectKey",
+                "in": "path",
+                "required": true,
+                "description": "Relative object key. The runtime accepts nested object paths after this segment, for example `public/client/song.osz`.",
+                "schema": {
+                    "type": "string",
+                    "minLength": 1,
+                    "example": "public/client/song.osz"
+                }
+            },
+            "PrefixQuery": {
+                "name": "prefix",
+                "in": "query",
+                "required": true,
+                "description": "Prefix to list. Send `?prefix=` to list from the bucket root. Non-empty prefixes are normalized to include a trailing slash.",
+                "schema": {
+                    "type": "string",
+                    "example": "public/client/"
+                }
+            },
+            "LimitQuery": {
+                "name": "limit",
+                "in": "query",
+                "required": false,
+                "description": "Maximum number of objects to return. Defaults to `100`; values above `1000` are clamped to `1000`.",
+                "schema": {
+                    "type": "integer",
+                    "format": "int32",
+                    "minimum": 1,
+                    "maximum": 1000,
+                    "default": 100,
+                    "example": 100
+                }
+            },
+            "CursorQuery": {
+                "name": "cursor",
+                "in": "query",
+                "required": false,
+                "description": "Continuation token returned by a previous listing response.",
+                "schema": {
+                    "type": "string",
+                    "example": "Cg0IARAAKICx9ab4hQYQAA=="
+                }
+            },
+            "RangeHeader": {
+                "name": "Range",
+                "in": "header",
+                "required": false,
+                "description": "Optional byte range request, forwarded to storage when streaming from `cdn.*`.",
+                "schema": {
+                    "type": "string",
+                    "example": "bytes=0-1023"
+                }
+            },
+            "ContentTypeHeader": {
+                "name": "Content-Type",
+                "in": "header",
+                "required": false,
+                "description": "Content type stored with the uploaded object.",
+                "schema": {
+                    "type": "string",
+                    "example": "application/octet-stream"
+                }
+            },
+            "CacheControlHeader": {
+                "name": "Cache-Control",
+                "in": "header",
+                "required": false,
+                "description": "Cache control metadata stored with the uploaded object.",
+                "schema": {
+                    "type": "string",
+                    "example": "public, max-age=31536000, immutable"
+                }
+            },
+            "ContentDispositionHeader": {
+                "name": "Content-Disposition",
+                "in": "header",
+                "required": false,
+                "description": "Content disposition metadata stored with the uploaded object.",
+                "schema": {
+                    "type": "string",
+                    "example": "attachment; filename=\"song.osz\""
+                }
+            }
+        },
+        "headers": {
+            "Location": {
+                "description": "Temporary presigned URL for direct object access.",
+                "schema": {
+                    "type": "string",
+                    "format": "uri"
+                }
+            },
+            "ContentType": {
+                "description": "Object content type reported by storage.",
+                "schema": {
+                    "type": "string"
+                }
+            },
+            "ContentLength": {
+                "description": "Object size in bytes for the returned payload or range.",
+                "schema": {
+                    "type": "string",
+                    "example": "1048576"
+                }
+            },
+            "ContentRange": {
+                "description": "Byte range served for partial responses.",
+                "schema": {
+                    "type": "string",
+                    "example": "bytes 0-1023/1048576"
+                }
+            },
+            "AcceptRanges": {
+                "description": "Supported range unit.",
+                "schema": {
+                    "type": "string",
+                    "example": "bytes"
+                }
+            },
+            "ETag": {
+                "description": "Entity tag returned by object storage.",
+                "schema": {
+                    "type": "string"
+                }
+            },
+            "LastModified": {
+                "description": "Last modification timestamp reported by object storage.",
+                "schema": {
+                    "type": "string",
+                    "format": "date-time"
+                }
+            },
+            "CacheControl": {
+                "description": "Cache control directives associated with the object.",
+                "schema": {
+                    "type": "string"
+                }
+            }
+        },
+        "responses": {
+            "AdminBadRequest": {
+                "description": "The request was malformed or used invalid parameters.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/AdminError"
+                        }
+                    }
+                }
+            },
+            "AdminUnauthorized": {
+                "description": "The bearer token is missing or invalid.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/AdminError"
+                        }
+                    }
+                }
+            },
+            "AdminForbidden": {
+                "description": "The bearer token does not have permission to access the requested prefix or object key.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/AdminError"
+                        }
+                    }
+                }
+            },
+            "AdminInternalError": {
+                "description": "The service failed before the request reached storage.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/AdminError"
+                        }
+                    }
+                }
+            },
+            "AdminStorageError": {
+                "description": "The service could not complete the operation against object storage.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/AdminError"
+                        }
+                    }
+                }
+            },
+            "DownloadRedirect": {
+                "description": "Temporary redirect to a presigned object URL.",
+                "headers": {
+                    "Location": {
+                        "$ref": "#/components/headers/Location"
+                    }
+                }
+            },
+            "DownloadBadRequest": {
+                "description": "Invalid host or invalid request path.",
+                "content": {
+                    "text/plain": {
+                        "schema": {
+                            "type": "string",
+                            "examples": [
+                                "Invalid host\n",
+                                "No path specified\n",
+                                "Invalid path\n"
+                            ]
+                        }
+                    }
+                }
+            },
+            "DownloadNotFound": {
+                "description": "The requested object does not exist.",
+                "content": {
+                    "text/plain": {
+                        "schema": {
+                            "type": "string",
+                            "example": "Not found\n"
+                        }
+                    }
+                }
+            },
+            "DownloadPresignError": {
+                "description": "The service could not create a presigned URL for the object.",
+                "content": {
+                    "text/plain": {
+                        "schema": {
+                            "type": "string",
+                            "example": "Failed to generate URL\n"
+                        }
+                    }
+                }
+            },
+            "DownloadUpstreamError": {
+                "description": "Any other status propagated from storage while streaming through `cdn.*`.",
+                "content": {
+                    "text/plain": {
+                        "schema": {
+                            "type": "string",
+                            "example": "Upstream error\n"
+                        }
+                    }
+                }
+            }
+        },
+        "schemas": {
+            "AdminError": {
+                "type": "object",
+                "required": ["error", "message"],
+                "properties": {
+                    "error": {
+                        "type": "string",
+                        "example": "forbidden"
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "delete permission is required for this path"
+                    }
+                }
+            },
+            "AdminSession": {
+                "type": "object",
+                "required": ["name", "prefixes", "permissions", "upload_mode"],
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "example": "exampleuser"
+                    },
+                    "prefixes": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "example": ["public/client/"]
+                    },
+                    "permissions": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "enum": ["list", "upload", "delete"]
+                        },
+                        "example": ["list", "upload", "delete"]
+                    },
+                    "upload_mode": {
+                        "type": "string",
+                        "description": "Reserved for future upload mode data. The current handler returns an empty string.",
+                        "example": ""
+                    }
+                }
+            },
+            "AdminListItem": {
+                "type": "object",
+                "required": ["key", "size", "etag", "last_modified"],
+                "properties": {
+                    "key": {
+                        "type": "string",
+                        "example": "public/client/song.osz"
+                    },
+                    "size": {
+                        "type": "integer",
+                        "format": "int64",
+                        "example": 1048576
+                    },
+                    "etag": {
+                        "type": "string",
+                        "example": "\"d41d8cd98f00b204e9800998ecf8427e\""
+                    },
+                    "last_modified": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2026-04-18T12:34:56Z"
+                    }
+                }
+            },
+            "AdminListResponse": {
+                "type": "object",
+                "required": ["prefix", "items", "next_cursor"],
+                "properties": {
+                    "prefix": {
+                        "type": "string",
+                        "example": "public/client/"
+                    },
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/AdminListItem"
+                        }
+                    },
+                    "next_cursor": {
+                        "type": "string",
+                        "description": "Continuation token for the next page. Empty when no more results are available.",
+                        "example": ""
+                    }
+                }
+            },
+            "AdminUploadResponse": {
+                "type": "object",
+                "required": ["key", "etag"],
+                "properties": {
+                    "key": {
+                        "type": "string",
+                        "example": "public/client/song.osz"
+                    },
+                    "etag": {
+                        "type": "string",
+                        "example": "\"d41d8cd98f00b204e9800998ecf8427e\""
+                    }
+                }
+            }
+        }
+    }
+}
