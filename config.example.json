@@ -13,7 +13,9 @@
             "access_key": "replace-me",
             "prefixes": ["public/client/"],
             "permissions": ["list", "upload", "delete"],
-            "callback": "http://example.com/callback"
+            "upload_callback": "http://example.com/upload/callback",
+            "download_callback": "http://example.com/download/callback",
+            "callback_validation": "replace-me"
         }
     ]
 }

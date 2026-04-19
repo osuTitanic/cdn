@@ -22,11 +22,13 @@ type Config struct {
 }
 
 type AccessKey struct {
-	Name        string   `json:"name"`
-	AccessKey   string   `json:"access_key"`
-	Prefixes    []string `json:"prefixes"`
-	Permissions []string `json:"permissions"`
-	Callback    string   `json:"callback"`
+	Name               string   `json:"name"`
+	AccessKey          string   `json:"access_key"`
+	Prefixes           []string `json:"prefixes"`
+	Permissions        []string `json:"permissions"`
+	UploadCallback     string   `json:"upload_callback"`
+	DownloadCallback   string   `json:"download_callback"`
+	CallbackValidation string   `json:"callback_validation"`
 }
 
 func (key AccessKey) HasPermission(permission string) bool {
