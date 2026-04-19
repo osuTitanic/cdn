@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"path"
 	"strings"
 	"time"
@@ -60,6 +61,7 @@ func (h *CdnHandler) HandleDownloadRequest(w http.ResponseWriter, r *http.Reques
 		http.Error(w, "Failed to generate URL", http.StatusInternalServerError)
 		return
 	}
+	go OnFileDownloadRequest(objectKey, h.config, r)
 
 	if isDirect {
 		http.Redirect(w, r, presignedReq.URL, http.StatusTemporaryRedirect)
@@ -147,5 +149,28 @@ func (h *CdnHandler) streamObject(
 	_, err = io.Copy(w, resp.Body)
 	if err != nil {
 		log.Printf("Error streaming %s: %v", objectKey, err)
+	}
+}
+
+func OnFileDownloadRequest(objectKey string, cfg *Config, r *http.Request) {
+	for _, accessKey := range cfg.AdminAccessKeys {
+		if accessKey.DownloadCallback == "" {
+			continue
+		}
+		if !accessKey.AllowsPath(objectKey) {
+			continue
+		}
+
+		params := url.Values{}
+		params.Set("key", objectKey)
+		params.Set("validation", accessKey.CallbackValidation)
+
+		request, err := http.NewRequest("POST", accessKey.DownloadCallback, strings.NewReader(params.Encode()))
+		if err != nil {
+			return
+		}
+		request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		request.Header.Set("User-Agent", "titanic-cdn")
+		http.DefaultClient.Do(request)
 	}
 }
