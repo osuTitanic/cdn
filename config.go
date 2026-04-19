@@ -26,6 +26,7 @@ type AccessKey struct {
 	AccessKey   string   `json:"access_key"`
 	Prefixes    []string `json:"prefixes"`
 	Permissions []string `json:"permissions"`
+	Callback    string   `json:"callback"`
 }
 
 func (key AccessKey) HasPermission(permission string) bool {

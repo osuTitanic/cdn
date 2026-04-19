@@ -12,7 +12,8 @@
             "name": "exampleuser",
             "access_key": "replace-me",
             "prefixes": ["public/client/"],
-            "permissions": ["list", "upload", "delete"]
+            "permissions": ["list", "upload", "delete"],
+            "callback": "http://example.com/callback"
         }
     ]
 }
