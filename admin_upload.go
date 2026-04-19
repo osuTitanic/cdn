@@ -2,6 +2,8 @@ package main
 
 import (
 	"net/http"
+	"net/url"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -52,9 +54,27 @@ func (h *CdnHandler) HandleAdminUpload(w http.ResponseWriter, r *http.Request) {
 		writeAdminError(w, http.StatusBadGateway, "storage_error", "failed to upload object")
 		return
 	}
+	go OnFileUploaded(objectKey, accessKey, r)
 
 	writeAdminJson(w, http.StatusOK, adminUploadResponse{
 		Key:  objectKey,
 		ETag: aws.ToString(output.ETag),
 	})
+}
+
+func OnFileUploaded(objectKey string, accessKey AccessKey, r *http.Request) {
+	if accessKey.UploadCallback == "" {
+		return
+	}
+	params := url.Values{}
+	params.Set("key", objectKey)
+	params.Set("validation", accessKey.CallbackValidation)
+
+	request, err := http.NewRequest("POST", accessKey.UploadCallback, strings.NewReader(params.Encode()))
+	if err != nil {
+		return
+	}
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	request.Header.Set("User-Agent", "titanic-cdn")
+	http.DefaultClient.Do(request)
 }
