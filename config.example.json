@@ -7,12 +7,14 @@
     "allowed_prefix": "public/",
     "presign_expiry": "15m",
     "listen_address": ":8080",
+    "download_counts_path": "./downloads.bbolt",
     "admin_access_keys": [
         {
             "name": "exampleuser",
             "access_key": "replace-me",
             "prefixes": ["public/client/"],
             "permissions": ["list", "upload", "delete"],
+            "track_downloads": true,
             "upload_callback": "http://example.com/upload/callback",
             "download_callback": "http://example.com/download/callback",
             "callback_validation": "replace-me"

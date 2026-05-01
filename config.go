@@ -10,15 +10,16 @@ import (
 )
 
 type Config struct {
-	S3Endpoint      string      `json:"s3_endpoint"`
-	S3Region        string      `json:"s3_region"`
-	S3AccessKey     string      `json:"s3_access_key"`
-	S3SecretKey     string      `json:"s3_secret_key"`
-	S3BucketName    string      `json:"s3_bucket_name"`
-	AllowedPrefix   string      `json:"allowed_prefix"`
-	PresignExpiry   Duration    `json:"presign_expiry"`
-	ListenAddress   string      `json:"listen_address"`
-	AdminAccessKeys []AccessKey `json:"admin_access_keys"`
+	S3Endpoint         string      `json:"s3_endpoint"`
+	S3Region           string      `json:"s3_region"`
+	S3AccessKey        string      `json:"s3_access_key"`
+	S3SecretKey        string      `json:"s3_secret_key"`
+	S3BucketName       string      `json:"s3_bucket_name"`
+	AllowedPrefix      string      `json:"allowed_prefix"`
+	PresignExpiry      Duration    `json:"presign_expiry"`
+	ListenAddress      string      `json:"listen_address"`
+	DownloadCountsPath string      `json:"download_counts_path"`
+	AdminAccessKeys    []AccessKey `json:"admin_access_keys"`
 }
 
 type AccessKey struct {
@@ -26,6 +27,7 @@ type AccessKey struct {
 	AccessKey          string   `json:"access_key"`
 	Prefixes           []string `json:"prefixes"`
 	Permissions        []string `json:"permissions"`
+	TrackDownloads     bool     `json:"track_downloads"`
 	UploadCallback     string   `json:"upload_callback"`
 	DownloadCallback   string   `json:"download_callback"`
 	CallbackValidation string   `json:"callback_validation"`
@@ -46,15 +48,16 @@ func (key AccessKey) AllowsPath(candidate string) bool {
 
 func LoadConfig(path string) (*Config, error) {
 	cfg := &Config{
-		S3Endpoint:      "https://s3.eu-central-1.wasabisys.com",
-		S3Region:        "eu-central-1",
-		S3AccessKey:     "",
-		S3SecretKey:     "",
-		S3BucketName:    "",
-		AllowedPrefix:   "",
-		PresignExpiry:   Duration{15 * time.Minute},
-		ListenAddress:   ":6969",
-		AdminAccessKeys: nil,
+		S3Endpoint:         "https://s3.eu-central-1.wasabisys.com",
+		S3Region:           "eu-central-1",
+		S3AccessKey:        "",
+		S3SecretKey:        "",
+		S3BucketName:       "",
+		AllowedPrefix:      "",
+		PresignExpiry:      Duration{15 * time.Minute},
+		ListenAddress:      ":6969",
+		DownloadCountsPath: "download-counts.bbolt",
+		AdminAccessKeys:    nil,
 	}
 
 	data, err := os.ReadFile(path)
