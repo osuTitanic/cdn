@@ -28,6 +28,7 @@ type CdnHandler struct {
 
 	client    S3ObjectStore
 	presigner S3Presigner
+	counter   DownloadCounter
 }
 
 func NewCdnHandler(cfg *Config) (*CdnHandler, error) {
@@ -41,10 +42,16 @@ func NewCdnHandler(cfg *Config) (*CdnHandler, error) {
 		),
 	})
 
+	downloadCounter, err := NewDownloadCounterFromConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+
 	handler := &CdnHandler{
 		config:    cfg,
 		keys:      make(map[string]AccessKey, len(cfg.AdminAccessKeys)),
 		client:    s3Client,
+		counter:   downloadCounter,
 		presigner: s3.NewPresignClient(s3Client),
 	}
 	for _, accessKey := range cfg.AdminAccessKeys {
@@ -57,6 +64,13 @@ func NewCdnHandler(cfg *Config) (*CdnHandler, error) {
 
 func (h *CdnHandler) Router() http.Handler {
 	return h.router
+}
+
+func (h *CdnHandler) Close(ctx context.Context) error {
+	if h.counter == nil {
+		return nil
+	}
+	return h.counter.Close(ctx)
 }
 
 func (h *CdnHandler) Routes() http.Handler {
