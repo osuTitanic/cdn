@@ -16,9 +16,7 @@ func NewDownloadCounterFromConfig(cfg *Config) (DownloadCounter, error) {
 	if !configTracksDownloads(cfg) {
 		return NewNoopDownloadCounter(), nil
 	}
-	// TODO: Add implementation
-	// return NewBBoltDownloadCounter(cfg.DownloadCountsPath)
-	return nil, nil
+	return NewBBoltDownloadCounter(cfg.DownloadCountsPath, nil)
 }
 
 func configTracksDownloads(cfg *Config) bool {
