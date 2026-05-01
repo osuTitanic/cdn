@@ -7,6 +7,7 @@ import (
 // DownloadCounter is an interface for tracking download counts
 type DownloadCounter interface {
 	Increment(key string)
+	Set(key string, count uint64)
 	Counts(keys []string) map[string]uint64
 	Reset(key string)
 	Close(ctx context.Context) error

@@ -11,6 +11,8 @@ func NewNoopDownloadCounter() *NoopDownloadCounter {
 
 func (NoopDownloadCounter) Increment(string) {}
 
+func (NoopDownloadCounter) Set(string, uint64) {}
+
 func (NoopDownloadCounter) Reset(string) {}
 
 func (NoopDownloadCounter) Close(context.Context) error {

@@ -70,6 +70,22 @@ func (c *BBoltDownloadCounter) Increment(key string) {
 	})
 }
 
+// Set sets the download count for key to count
+func (c *BBoltDownloadCounter) Set(key string, count uint64) {
+	c.db.Update(func(tx *bbolt.Tx) error {
+		bucket, err := tx.CreateBucketIfNotExists(c.bucket)
+		if err != nil {
+			return err
+		}
+
+		// Write the count as an 8-byte big-endian uint64
+		var buf [8]byte
+		binary.BigEndian.PutUint64(buf[:], count)
+
+		return bucket.Put([]byte(key), buf[:])
+	})
+}
+
 // Counts returns the download counts for the given keys
 func (c *BBoltDownloadCounter) Counts(keys []string) map[string]uint64 {
 	result := make(map[string]uint64, len(keys))
