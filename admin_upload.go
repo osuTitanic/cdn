@@ -54,7 +54,7 @@ func (h *CdnHandler) HandleAdminUpload(w http.ResponseWriter, r *http.Request) {
 		writeAdminError(w, http.StatusBadGateway, "storage_error", "failed to upload object")
 		return
 	}
-	go OnFileUploaded(objectKey, accessKey, r)
+	go HandleUploadCallback(objectKey, accessKey, r)
 
 	writeAdminJson(w, http.StatusOK, adminUploadResponse{
 		Key:  objectKey,
@@ -62,7 +62,7 @@ func (h *CdnHandler) HandleAdminUpload(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func OnFileUploaded(objectKey string, accessKey AccessKey, r *http.Request) {
+func HandleUploadCallback(objectKey string, accessKey AccessKey, r *http.Request) {
 	if accessKey.UploadCallback == "" {
 		return
 	}

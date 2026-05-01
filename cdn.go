@@ -61,9 +61,10 @@ func (h *CdnHandler) HandleDownloadRequest(w http.ResponseWriter, r *http.Reques
 		http.Error(w, "Failed to generate URL", http.StatusInternalServerError)
 		return
 	}
-	go OnFileDownloadRequest(objectKey, h.config, r)
+	go HandleDownloadCallback(objectKey, h.config, r)
 
 	if isDirect {
+		h.RecordDownload(objectKey, r)
 		http.Redirect(w, r, presignedReq.URL, http.StatusTemporaryRedirect)
 		return
 	}
@@ -124,6 +125,7 @@ func (h *CdnHandler) streamObject(
 		http.Error(w, "Upstream error", resp.StatusCode)
 		return
 	}
+	h.RecordDownload(objectKey, r)
 
 	forwardHeaders := []string{
 		"Content-Type",
@@ -152,7 +154,26 @@ func (h *CdnHandler) streamObject(
 	}
 }
 
-func OnFileDownloadRequest(objectKey string, cfg *Config, r *http.Request) {
+func (h *CdnHandler) RecordDownload(objectKey string, r *http.Request) {
+	if r.Method != http.MethodGet || h.counter == nil {
+		return
+	}
+	if !h.ShouldTrackDownload(objectKey) {
+		return
+	}
+	h.counter.Increment(objectKey)
+}
+
+func (h *CdnHandler) ShouldTrackDownload(objectKey string) bool {
+	for _, accessKey := range h.config.AdminAccessKeys {
+		if accessKey.TrackDownloads && accessKey.AllowsPath(objectKey) {
+			return true
+		}
+	}
+	return false
+}
+
+func HandleDownloadCallback(objectKey string, cfg *Config, r *http.Request) {
 	for _, accessKey := range cfg.AdminAccessKeys {
 		if accessKey.DownloadCallback == "" {
 			continue

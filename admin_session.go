@@ -10,8 +10,9 @@ func (h *CdnHandler) HandleAdminSession(w http.ResponseWriter, r *http.Request) 
 	}
 
 	writeAdminJson(w, http.StatusOK, adminSessionResponse{
-		Name:        accessKey.Name,
-		Prefixes:    accessKey.Prefixes,
-		Permissions: accessKey.Permissions,
+		Name:           accessKey.Name,
+		Prefixes:       accessKey.Prefixes,
+		Permissions:    accessKey.Permissions,
+		TrackDownloads: accessKey.TrackDownloads,
 	})
 }

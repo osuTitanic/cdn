@@ -41,5 +41,9 @@ func (h *CdnHandler) HandleAdminDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if h.counter != nil {
+		h.counter.Reset(objectKey)
+	}
+
 	w.WriteHeader(http.StatusNoContent)
 }
