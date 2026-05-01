@@ -58,7 +58,7 @@
                 "tags": ["Admin"],
                 "summary": "Get the authenticated admin session",
                 "operationId": "getAdminSession",
-                "description": "Returns the configured name, allowed prefixes, and permissions associated with the bearer token.",
+                "description": "Returns the configured name, allowed prefixes, permissions, and download-count tracking status associated with the bearer token.",
                 "security": [
                     {
                         "bearerAuth": []
@@ -685,7 +685,7 @@
             },
             "AdminSession": {
                 "type": "object",
-                "required": ["name", "prefixes", "permissions", "upload_mode"],
+                "required": ["name", "prefixes", "permissions", "upload_mode", "track_downloads"],
                 "properties": {
                     "name": {
                         "type": "string",
@@ -710,6 +710,11 @@
                         "type": "string",
                         "description": "Reserved for future upload mode data. The current handler returns an empty string.",
                         "example": ""
+                    },
+                    "track_downloads": {
+                        "type": "boolean",
+                        "description": "Whether list responses for this access key include per-file download counts.",
+                        "example": true
                     }
                 }
             },
@@ -734,6 +739,13 @@
                         "type": "string",
                         "format": "date-time",
                         "example": "2026-04-18T12:34:56Z"
+                    },
+                    "download_count": {
+                        "type": "integer",
+                        "format": "uint64",
+                        "description": "Per-file download count. Present only when the authenticated access key has download tracking enabled.",
+                        "minimum": 0,
+                        "example": 42
                     }
                 }
             },

@@ -12,17 +12,19 @@ type adminErrorResponse struct {
 }
 
 type adminSessionResponse struct {
-	Name        string   `json:"name"`
-	Prefixes    []string `json:"prefixes"`
-	Permissions []string `json:"permissions"`
-	UploadMode  string   `json:"upload_mode"`
+	Name           string   `json:"name"`
+	Prefixes       []string `json:"prefixes"`
+	Permissions    []string `json:"permissions"`
+	UploadMode     string   `json:"upload_mode"`
+	TrackDownloads bool     `json:"track_downloads"`
 }
 
 type adminListItem struct {
-	Key          string `json:"key"`
-	Size         int64  `json:"size"`
-	ETag         string `json:"etag"`
-	LastModified string `json:"last_modified"`
+	Key           string  `json:"key"`
+	Size          int64   `json:"size"`
+	ETag          string  `json:"etag"`
+	LastModified  string  `json:"last_modified"`
+	DownloadCount *uint64 `json:"download_count,omitempty"`
 }
 
 type adminListResponse struct {

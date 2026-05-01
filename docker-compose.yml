@@ -7,6 +7,7 @@ services:
       - "8080:8080"
     volumes:
       - ./config.json:/app/config.json:ro
+      - ./data/:/app/data/
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
       interval: 30s

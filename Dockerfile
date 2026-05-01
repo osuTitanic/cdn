@@ -24,5 +24,7 @@ COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 WORKDIR /app
 COPY --from=builder /s3-cdn /app/s3-cdn
 
+VOLUME [ "/app/data" ]
 EXPOSE 8080
+
 ENTRYPOINT ["/app/s3-cdn"]

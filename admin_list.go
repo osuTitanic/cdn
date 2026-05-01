@@ -71,6 +71,18 @@ func (h *CdnHandler) HandleAdminList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	objectKeys := make([]string, 0, len(output.Contents))
+	if accessKey.TrackDownloads {
+		for _, object := range output.Contents {
+			objectKeys = append(objectKeys, aws.ToString(object.Key))
+		}
+	}
+
+	downloadCounts := map[string]uint64{}
+	if accessKey.TrackDownloads && h.counter != nil {
+		downloadCounts = h.counter.Counts(objectKeys)
+	}
+
 	items := make([]adminListItem, 0, len(output.Contents))
 	for _, object := range output.Contents {
 		item := adminListItem{
@@ -82,6 +94,10 @@ func (h *CdnHandler) HandleAdminList(w http.ResponseWriter, r *http.Request) {
 		}
 		if object.LastModified != nil {
 			item.LastModified = object.LastModified.UTC().Format(time.RFC3339)
+		}
+		if accessKey.TrackDownloads {
+			count := downloadCounts[item.Key]
+			item.DownloadCount = &count
 		}
 		items = append(items, item)
 	}
