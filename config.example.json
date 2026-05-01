@@ -7,7 +7,7 @@
     "allowed_prefix": "public/",
     "presign_expiry": "15m",
     "listen_address": ":8080",
-    "download_counts_path": "./downloads.bbolt",
+    "download_counts_path": "./data/downloads.bbolt",
     "admin_access_keys": [
         {
             "name": "exampleuser",

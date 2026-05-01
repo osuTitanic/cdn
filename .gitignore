@@ -20,3 +20,6 @@ config.json
 
 # Air build files
 tmp/
+
+# Application data
+data/
