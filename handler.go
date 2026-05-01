@@ -67,6 +67,10 @@ func (h *CdnHandler) Routes() http.Handler {
 	return h.logRequests(mux)
 }
 
+func (h *CdnHandler) Close(ctx context.Context) error {
+	return nil
+}
+
 func (h *CdnHandler) logRequests(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("%s %s %s [%s] (%s)", r.Method, r.Host, r.URL.Path, r.RemoteAddr, r.UserAgent())
