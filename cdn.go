@@ -46,7 +46,7 @@ func (h *CdnHandler) HandleDownloadRequest(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Minute)
 	defer cancel()
 
 	presignOptions := s3.WithPresignExpires(h.config.PresignExpiry.Duration)
@@ -69,7 +69,7 @@ func (h *CdnHandler) HandleDownloadRequest(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	h.streamObject(ctx, w, r, presignedReq.URL, objectKey)
+	h.streamObject(r.Context(), w, r, presignedReq.URL, objectKey)
 }
 
 func (h *CdnHandler) objectKeyFromRequestPath(requestPath string) (string, error) {
@@ -98,7 +98,10 @@ func (h *CdnHandler) streamObject(
 	presignedURL string,
 	objectKey string,
 ) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, presignedURL, nil)
+	streamCtx, cancelStream := context.WithCancel(ctx)
+	defer cancelStream()
+
+	req, err := http.NewRequestWithContext(streamCtx, http.MethodGet, presignedURL, nil)
 	if err != nil {
 		log.Printf("Failed to create request for %s: %v", objectKey, err)
 		http.Error(w, "Internal error", http.StatusInternalServerError)
