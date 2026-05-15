@@ -46,8 +46,7 @@ func (h *CdnHandler) HandleDownloadRequest(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Minute)
-	defer cancel()
+	presignCtx, cancelPresign := context.WithTimeout(r.Context(), 5*time.Minute)
 
 	presignOptions := s3.WithPresignExpires(h.config.PresignExpiry.Duration)
 	objectInput := &s3.GetObjectInput{
@@ -55,7 +54,8 @@ func (h *CdnHandler) HandleDownloadRequest(w http.ResponseWriter, r *http.Reques
 		Key:    aws.String(objectKey),
 	}
 
-	presignedReq, err := h.presigner.PresignGetObject(ctx, objectInput, presignOptions)
+	presignedReq, err := h.presigner.PresignGetObject(presignCtx, objectInput, presignOptions)
+	cancelPresign()
 	if err != nil {
 		log.Printf("Failed to presign URL for %s: %v", objectKey, err)
 		http.Error(w, "Failed to generate URL", http.StatusInternalServerError)
@@ -69,6 +69,7 @@ func (h *CdnHandler) HandleDownloadRequest(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	// The presign timeout must not become a body-transfer deadline for large downloads.
 	h.streamObject(r.Context(), w, r, presignedReq.URL, objectKey)
 }
 
