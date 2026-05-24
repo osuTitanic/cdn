@@ -40,6 +40,7 @@ func NewCdnHandler(cfg *Config) (*CdnHandler, error) {
 			cfg.S3SecretKey,
 			"",
 		),
+		RequestChecksumCalculation: aws.RequestChecksumCalculationWhenRequired,
 	})
 
 	downloadCounter, err := NewDownloadCounterFromConfig(cfg)
