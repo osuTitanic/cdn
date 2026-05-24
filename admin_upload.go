@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -51,6 +52,7 @@ func (h *CdnHandler) HandleAdminUpload(w http.ResponseWriter, r *http.Request) {
 
 	output, err := h.client.PutObject(r.Context(), input)
 	if err != nil {
+		log.Printf("failed to upload object %s: %v", objectKey, err)
 		writeAdminError(w, http.StatusBadGateway, "storage_error", "failed to upload object")
 		return
 	}

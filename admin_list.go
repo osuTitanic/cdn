@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -67,6 +68,7 @@ func (h *CdnHandler) HandleAdminList(w http.ResponseWriter, r *http.Request) {
 
 	output, err := h.client.ListObjectsV2(ctx, input)
 	if err != nil {
+		log.Printf("failed to list objects with prefix %s: %v", prefix, err)
 		writeAdminError(w, http.StatusBadGateway, "storage_error", "failed to list objects")
 		return
 	}

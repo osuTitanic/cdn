@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -37,6 +38,7 @@ func (h *CdnHandler) HandleAdminDelete(w http.ResponseWriter, r *http.Request) {
 		Key:    aws.String(objectKey),
 	})
 	if err != nil && !isNotFoundError(err) {
+		log.Printf("failed to delete object %s: %v", objectKey, err)
 		writeAdminError(w, http.StatusBadGateway, "storage_error", "failed to delete object")
 		return
 	}
