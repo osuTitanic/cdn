@@ -37,3 +37,9 @@ type adminUploadResponse struct {
 	Key  string `json:"key"`
 	ETag string `json:"etag"`
 }
+
+type adminPresignUploadResponse struct {
+	Key    string `json:"key"`
+	URL    string `json:"url"`
+	Method string `json:"method"`
+}
