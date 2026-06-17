@@ -19,6 +19,7 @@ type S3ObjectStore interface {
 
 type S3Presigner interface {
 	PresignGetObject(ctx context.Context, params *s3.GetObjectInput, options ...func(*s3.PresignOptions)) (*v4.PresignedHTTPRequest, error)
+	PresignPutObject(ctx context.Context, params *s3.PutObjectInput, options ...func(*s3.PresignOptions)) (*v4.PresignedHTTPRequest, error)
 }
 
 type CdnHandler struct {

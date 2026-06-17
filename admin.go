@@ -10,6 +10,8 @@ func (h *CdnHandler) AdminRoutes() http.Handler {
 	// /files/{key} for upload & delete
 	mux.Handle("/files/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
+		case http.MethodPost:
+			h.HandleAdminPresignUpload(w, r)
 		case http.MethodPut:
 			h.HandleAdminUpload(w, r)
 		case http.MethodDelete:

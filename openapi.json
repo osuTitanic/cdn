@@ -140,6 +140,46 @@
                     "$ref": "#/components/parameters/ObjectKeyPath"
                 }
             ],
+            "post": {
+                "tags": ["Admin"],
+                "summary": "Request a presigned upload URL",
+                "operationId": "presignAdminFile",
+                "description": "Returns a presigned S3 PUT URL the client can use to upload directly to object storage, bypassing the CDN server. If `Content-Type` is provided, it is embedded in the signature and must be sent as-is when the client performs the upload.",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/ContentTypeHeader"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Presigned URL generated successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AdminPresignUploadResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/AdminBadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AdminUnauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AdminForbidden"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/AdminInternalError"
+                    }
+                }
+            },
             "put": {
                 "tags": ["Admin"],
                 "summary": "Upload or replace an object",
@@ -781,6 +821,27 @@
                     "etag": {
                         "type": "string",
                         "example": "\"d41d8cd98f00b204e9800998ecf8427e\""
+                    }
+                }
+            },
+            "AdminPresignUploadResponse": {
+                "type": "object",
+                "required": ["key", "url", "method"],
+                "properties": {
+                    "key": {
+                        "type": "string",
+                        "example": "public/client/song.osz"
+                    },
+                    "url": {
+                        "type": "string",
+                        "format": "uri",
+                        "description": "Presigned S3 URL. The client should upload the file body directly to this URL using the HTTP method in `method`.",
+                        "example": "https://s3.eu-central-1.wasabisys.com/bucket/public/client/song.osz?X-Amz-Algorithm=..."
+                    },
+                    "method": {
+                        "type": "string",
+                        "description": "HTTP method to use when uploading to `url`.",
+                        "example": "PUT"
                     }
                 }
             }
